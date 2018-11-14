@@ -30,7 +30,9 @@ adduser libre dialout
 adduser libre video
 
 apt-get -y dist-upgrade
-apt-get install -y ubuntu-desktop
+apt-get install -y ubuntu-desktop rng-tools
+
+systemctl enable rng-tools
 
 # Basic network setup
 cat > /etc/network/interfaces.d/eth0 <<EOF
