@@ -1,0 +1,215 @@
+From d21f4a9c1229abaf824edf6628aef5c4a51917bb Mon Sep 17 00:00:00 2001
+From: Neil Armstrong <narmstrong@baylibre.com>
+Date: Tue, 30 Oct 2018 14:29:10 +0100
+Subject: [PATCH 10/11] drm/meson: Add primary plane scaling
+
+---
+ drivers/gpu/drm/meson/meson_plane.c | 144 ++++++++++++++++++++++++------------
+ 1 file changed, 97 insertions(+), 47 deletions(-)
+
+diff --git a/drivers/gpu/drm/meson/meson_plane.c b/drivers/gpu/drm/meson/meson_plane.c
+index f915a79..eb72d20 100644
+--- a/drivers/gpu/drm/meson/meson_plane.c
++++ b/drivers/gpu/drm/meson/meson_plane.c
+@@ -45,6 +45,8 @@ struct meson_plane {
+ };
+ #define to_meson_plane(x) container_of(x, struct meson_plane, base)
+ 
++#define FRAC_16_16(mult, div)    (((mult) << 16) / (div))
++
+ static int meson_plane_atomic_check(struct drm_plane *plane,
+ 				    struct drm_plane_state *state)
+ {
+@@ -58,9 +60,9 @@ static int meson_plane_atomic_check(struct drm_plane *plane,
+ 		return PTR_ERR(crtc_state);
+ 
+ 	return drm_atomic_helper_check_plane_state(state, crtc_state,
+-						   DRM_PLANE_HELPER_NO_SCALING,
+-						   DRM_PLANE_HELPER_NO_SCALING,
+-						   true, true);
++						   FRAC_16_16(1, 5),
++						   FRAC_16_16(5, 1),
++						   true, false);
+ }
+ 
+ /* Takes a fixed 16.16 number and converts it to integer. */
+@@ -74,14 +76,24 @@ static void meson_plane_atomic_update(struct drm_plane *plane,
+ {
+ 	struct meson_plane *meson_plane = to_meson_plane(plane);
+ 	struct drm_plane_state *state = plane->state;
+-	struct drm_framebuffer *fb = state->fb;
+ 	struct meson_drm *priv = meson_plane->priv;
++	struct drm_framebuffer *fb = state->fb;
+ 	struct drm_gem_cma_object *gem;
++	int hf_phase_step, vf_phase_step;
++	int src_w, src_h, dst_w, dst_h;
++	int bot_ini_phase;
++	int vsc_ini_rcv_num, vsc_ini_rpt_p0_num;
++	int vsc_bot_rcv_num, vsc_bot_rpt_p0_num;
++	int hsc_ini_rcv_num, hsc_ini_rpt_p0_num;
++	int hf_bank_len;
++	int vf_bank_len;
++	unsigned long flags;
++	u8 canvas_id_osd1;
+ 	struct drm_rect src = {
+-		.x1 = (state->src_x),
+-		.y1 = (state->src_y),
+-		.x2 = (state->src_x + state->src_w),
+-		.y2 = (state->src_y + state->src_h),
++		.x1 = fixed16_to_int(state->src_x),
++		.y1 = fixed16_to_int(state->src_y),
++		.x2 = fixed16_to_int(state->src_x + state->src_w),
++		.y2 = fixed16_to_int(state->src_y + state->src_h),
+ 	};
+ 	struct drm_rect dest = {
+ 		.x1 = state->crtc_x,
+@@ -89,8 +101,6 @@ static void meson_plane_atomic_update(struct drm_plane *plane,
+ 		.x2 = state->crtc_x + state->crtc_w,
+ 		.y2 = state->crtc_y + state->crtc_h,
+ 	};
+-	unsigned long flags;
+-	u8 canvas_id_osd1;
+ 
+ 	/*
+ 	 * Update Coordinates
+@@ -143,49 +153,91 @@ static void meson_plane_atomic_update(struct drm_plane *plane,
+ 		break;
+ 	};
+ 
+-	/*
+-	 * When the output is interlaced, the OSD must switch between
+-	 * each field using the INTERLACE_SEL_ODD (0) of VIU_OSD1_BLK0_CFG_W0
+-	 * at each vsync.
+-	 * But the vertical scaler can provide such funtionnality if
+-	 * is configured for 2:1 scaling with interlace options enabled.
+-	 */
++	vsc_bot_rcv_num = 0;
++	vsc_bot_rpt_p0_num = 0;
++	hf_bank_len = 4;
++	vf_bank_len = 4; // 2 for 4k2k ?
++
+ 	if (state->crtc->mode.flags & DRM_MODE_FLAG_INTERLACE) {
+-		priv->viu.osd1_interlace = true;
++		vsc_bot_rcv_num = 6; // 8 ??
++		vsc_bot_rpt_p0_num = 2; // 3 ??
++	}
++
++	hsc_ini_rcv_num = hf_bank_len;
++	vsc_ini_rcv_num = vf_bank_len;
++	hsc_ini_rpt_p0_num =
++		(hf_bank_len / 2 - 1) > 0 ? (hf_bank_len / 2 - 1) : 0;
++	vsc_ini_rpt_p0_num =
++		(vf_bank_len / 2 - 1) > 0 ? (vf_bank_len / 2 - 1) : 0;
+ 
++	src_w = fixed16_to_int(state->src_w); // + 1;
++	src_h = fixed16_to_int(state->src_h); // + 1;
++	dst_w = state->crtc_w; // + 1;
++	dst_h = state->crtc_h; // + 1;
++
++	if (state->crtc->mode.flags & DRM_MODE_FLAG_INTERLACE) {
++		/* 2:1 scaling */
+ 		dest.y1 /= 2;
+ 		dest.y2 /= 2;
++		dst_h /= 2;
++	}
++
++	hf_phase_step = (src_w << 18) / dst_w;
++	hf_phase_step = (hf_phase_step << 6);
++	vf_phase_step = (src_h << 20) / dst_h;
++
++	if (state->crtc->mode.flags & DRM_MODE_FLAG_INTERLACE)
++		bot_ini_phase = ((vf_phase_step / 2) >> 4);
++	else
++		bot_ini_phase = 0;
++
++	vf_phase_step = (vf_phase_step << 4);
+ 
+-		priv->viu.osd_sc_ctrl0 = BIT(3)| /* Enable scaler */
++	if (src_h != dst_h || src_w != dst_w) {
++		priv->viu.osd_sc_i_wh_m1 = ((src_w - 1) << 16) | (src_h - 1);
++		priv->viu.osd_sc_o_h_start_end = (dest.x1 << 16) | (dest.x2 - 1);
++		priv->viu.osd_sc_o_v_start_end = (dest.y1 << 16) | (dest.y2 - 1);
++		/* Enable OSD Scaler */
++		priv->viu.osd_sc_ctrl0 = BIT(3) | /* Enable scaler */
+ 					 BIT(2); /* Select OSD1 */
++	} else {
++		priv->viu.osd_sc_i_wh_m1 = 0;
++		priv->viu.osd_sc_o_h_start_end = 0;
++		priv->viu.osd_sc_o_v_start_end = 0;
++		priv->viu.osd_sc_ctrl0 = 0;
++	}
+ 
+-		/* 2:1 scaling */
+-		priv->viu.osd_sc_i_wh_m1 = ((drm_rect_width(&dest) - 1) << 16) |
+-					   (drm_rect_height(&dest) - 1);
+-		priv->viu.osd_sc_o_h_start_end = (dest.x1 << 16) | dest.x2;
+-		priv->viu.osd_sc_o_v_start_end = (dest.y1 << 16) | dest.y2;
+-
+-		/* 2:1 vertical scaling values */
+-		priv->viu.osd_sc_v_ini_phase = BIT(16);
+-		priv->viu.osd_sc_v_phase_step = BIT(25);
+-		priv->viu.osd_sc_v_ctrl0 =
+-			(4 << 0) | /* osd_vsc_bank_length */
+-			(4 << 3) | /* osd_vsc_top_ini_rcv_num0 */
+-			(1 << 8) | /* osd_vsc_top_rpt_p0_num0 */
+-			(6 << 11) | /* osd_vsc_bot_ini_rcv_num0 */
+-			(2 << 16) | /* osd_vsc_bot_rpt_p0_num0 */
+-			BIT(23)	| /* osd_prog_interlace */
+-			BIT(24); /* Enable vertical scaler */
+-
+-		/* No horizontal scaling */
++	if (src_h != dst_h) {
++		priv->viu.osd_sc_v_ctrl0 = ((vf_bank_len & 0x7) << 0) | /* osd_vsc_bank_length */
++					   ((vsc_ini_rcv_num & 0xf) << 3) | /* osd_vsc_top_ini_rcv_num0 */
++					   ((vsc_ini_rpt_p0_num & 0x3) << 8) | /* osd_vsc_top_rpt_p0_num0 */
++					   BIT(24); /* Enable vertical scaler */
++
++		if (state->crtc->mode.flags & DRM_MODE_FLAG_INTERLACE)
++			priv->viu.osd_sc_v_ctrl0 |=
++					((vsc_bot_rcv_num & 0xf) << 11) | /* osd_vsc_bot_ini_rcv_num0 */
++					((vsc_bot_rpt_p0_num & 0x3) << 16) | /* osd_vsc_bot_rpt_p0_num0 */
++					BIT(23); /* osd_prog_interlace */
++
++		priv->viu.osd_sc_v_phase_step = vf_phase_step;
++		priv->viu.osd_sc_v_ini_phase = (bot_ini_phase & 0xffff) << 16;
++	} else {
++		priv->viu.osd_sc_v_ctrl0 = 0;
++		priv->viu.osd_sc_v_phase_step = 0;
++		priv->viu.osd_sc_v_ini_phase = 0;
++	}
++
++	if (src_w != dst_w) {
++		priv->viu.osd_sc_h_ctrl0 = ((hf_bank_len & 0x7) << 0) | /* osd_hsc_bank_length */
++					   ((hsc_ini_rcv_num & 0xf) << 3) | /* osd_hsc_top_ini_rcv_num0 */
++					   ((hsc_ini_rpt_p0_num & 0x3) << 8) | /* osd_hsc_top_rpt_p0_num0 */
++					   BIT(22); /* Enable horizontal scaler */
++		priv->viu.osd_sc_h_phase_step = hf_phase_step;
+ 		priv->viu.osd_sc_h_ini_phase = 0;
+-		priv->viu.osd_sc_h_phase_step = 0;
+-		priv->viu.osd_sc_h_ctrl0 = 0;
+ 	} else {
+-		priv->viu.osd1_interlace = false;
+-		priv->viu.osd_sc_ctrl0 = 0;
+ 		priv->viu.osd_sc_h_ctrl0 = 0;
+-		priv->viu.osd_sc_v_ctrl0 = 0;
++		priv->viu.osd_sc_h_phase_step = 0;
++		priv->viu.osd_sc_h_ini_phase = 0;
+ 	}
+ 
+ 	/*
+@@ -193,10 +245,8 @@ static void meson_plane_atomic_update(struct drm_plane *plane,
+ 	 * where x2 is exclusive.
+ 	 * e.g. +30x1920 would be (1919 << 16) | 30
+ 	 */
+-	priv->viu.osd1_blk0_cfg[1] = ((fixed16_to_int(src.x2) - 1) << 16) |
+-					fixed16_to_int(src.x1);
+-	priv->viu.osd1_blk0_cfg[2] = ((fixed16_to_int(src.y2) - 1) << 16) |
+-					fixed16_to_int(src.y1);
++	priv->viu.osd1_blk0_cfg[1] = ((src.x2 - 1) << 16) | src.x1;
++	priv->viu.osd1_blk0_cfg[2] = ((src.y2 - 1) << 16) | src.y1;
+ 	priv->viu.osd1_blk0_cfg[3] = ((dest.x2 - 1) << 16) | dest.x1;
+ 	priv->viu.osd1_blk0_cfg[4] = ((dest.y2 - 1) << 16) | dest.y1;
+ 
+-- 
+2.7.4
+
