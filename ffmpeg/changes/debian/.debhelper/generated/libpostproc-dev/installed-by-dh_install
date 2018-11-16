@@ -1,0 +1,8 @@
+debian/tmp/extra/usr/include/aarch64-linux-gnu/libpostproc
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/libpostproc.a
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/libpostproc.so
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/pkgconfig/libpostproc.pc
+debian/tmp/usr/include/aarch64-linux-gnu/libpostproc
+debian/tmp/usr/lib/aarch64-linux-gnu/libpostproc.a
+debian/tmp/usr/lib/aarch64-linux-gnu/libpostproc.so
+debian/tmp/usr/lib/aarch64-linux-gnu/pkgconfig/libpostproc.pc

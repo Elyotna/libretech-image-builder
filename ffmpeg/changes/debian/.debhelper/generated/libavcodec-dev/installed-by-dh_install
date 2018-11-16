@@ -1,0 +1,8 @@
+debian/tmp/extra/usr/include/aarch64-linux-gnu/libavcodec
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/libavcodec.a
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/libavcodec.so
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/pkgconfig/libavcodec.pc
+debian/tmp/usr/include/aarch64-linux-gnu/libavcodec
+debian/tmp/usr/lib/aarch64-linux-gnu/libavcodec.a
+debian/tmp/usr/lib/aarch64-linux-gnu/libavcodec.so
+debian/tmp/usr/lib/aarch64-linux-gnu/pkgconfig/libavcodec.pc

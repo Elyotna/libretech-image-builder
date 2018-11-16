@@ -1,0 +1,8 @@
+debian/tmp/extra/usr/include/aarch64-linux-gnu/libavutil
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/libavutil.a
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/libavutil.so
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/pkgconfig/libavutil.pc
+debian/tmp/usr/include/aarch64-linux-gnu/libavutil
+debian/tmp/usr/lib/aarch64-linux-gnu/libavutil.a
+debian/tmp/usr/lib/aarch64-linux-gnu/libavutil.so
+debian/tmp/usr/lib/aarch64-linux-gnu/pkgconfig/libavutil.pc

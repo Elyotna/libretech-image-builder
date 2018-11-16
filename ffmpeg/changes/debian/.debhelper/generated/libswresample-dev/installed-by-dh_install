@@ -1,0 +1,8 @@
+debian/tmp/extra/usr/include/aarch64-linux-gnu/libswresample
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/libswresample.a
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/libswresample.so
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/pkgconfig/libswresample.pc
+debian/tmp/usr/include/aarch64-linux-gnu/libswresample
+debian/tmp/usr/lib/aarch64-linux-gnu/libswresample.a
+debian/tmp/usr/lib/aarch64-linux-gnu/libswresample.so
+debian/tmp/usr/lib/aarch64-linux-gnu/pkgconfig/libswresample.pc

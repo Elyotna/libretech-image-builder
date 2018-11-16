@@ -1,0 +1,8 @@
+debian/tmp/extra/usr/include/aarch64-linux-gnu/libavformat
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/libavformat.a
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/libavformat.so
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/pkgconfig/libavformat.pc
+debian/tmp/usr/include/aarch64-linux-gnu/libavformat
+debian/tmp/usr/lib/aarch64-linux-gnu/libavformat.a
+debian/tmp/usr/lib/aarch64-linux-gnu/libavformat.so
+debian/tmp/usr/lib/aarch64-linux-gnu/pkgconfig/libavformat.pc

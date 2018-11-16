@@ -1,0 +1,8 @@
+debian/tmp/extra/usr/include/aarch64-linux-gnu/libswscale
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/libswscale.a
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/libswscale.so
+debian/tmp/extra/usr/lib/aarch64-linux-gnu/pkgconfig/libswscale.pc
+debian/tmp/usr/include/aarch64-linux-gnu/libswscale
+debian/tmp/usr/lib/aarch64-linux-gnu/libswscale.a
+debian/tmp/usr/lib/aarch64-linux-gnu/libswscale.so
+debian/tmp/usr/lib/aarch64-linux-gnu/pkgconfig/libswscale.pc
