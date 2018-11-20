@@ -1,0 +1,32 @@
+From 879cef801aca160fdf06f7bbe4590d86b7230f0c Mon Sep 17 00:00:00 2001
+From: Maxime Jourdan <mjourdan@baylibre.com>
+Date: Tue, 20 Nov 2018 11:47:30 +0100
+Subject: [PATCH 3/3] CreateEGLImage: fill in additional attrs
+
+libMali will throw an EGL_BAD_PARAMETER error if those attrs are not set in the call.
+---
+ media/gpu/v4l2/generic_v4l2_device.cc | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/media/gpu/v4l2/generic_v4l2_device.cc b/media/gpu/v4l2/generic_v4l2_device.cc
+index 1676d8cd0276..790beb3538b1 100644
+--- a/media/gpu/v4l2/generic_v4l2_device.cc
++++ b/media/gpu/v4l2/generic_v4l2_device.cc
+@@ -258,6 +258,14 @@ EGLImageKHR GenericV4L2Device::CreateEGLImage(
+   attrs.push_back(size.height());
+   attrs.push_back(EGL_LINUX_DRM_FOURCC_EXT);
+   attrs.push_back(V4L2PixFmtToDrmFormat(v4l2_pixfmt));
++  attrs.push_back(EGL_YUV_COLOR_SPACE_HINT_EXT);
++  attrs.push_back(EGL_ITU_REC709_EXT);
++  attrs.push_back(EGL_SAMPLE_RANGE_HINT_EXT);
++  attrs.push_back(EGL_YUV_NARROW_RANGE_EXT);
++  attrs.push_back(EGL_YUV_CHROMA_VERTICAL_SITING_HINT_EXT);
++  attrs.push_back(EGL_YUV_CHROMA_SITING_0_EXT);
++  attrs.push_back(EGL_YUV_CHROMA_HORIZONTAL_SITING_HINT_EXT);
++  attrs.push_back(EGL_YUV_CHROMA_SITING_0_EXT);
+ 
+   // For existing formats, if we have less buffers (V4L2 planes) than
+   // components (planes), the remaining planes are stored in the last
+-- 
+2.19.1
+

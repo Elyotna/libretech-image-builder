@@ -1,0 +1,27 @@
+From 9ac0987b7772e4832737c9efee3eaaf8f356d20f Mon Sep 17 00:00:00 2001
+From: Maxime Jourdan <mjourdan@baylibre.com>
+Date: Tue, 20 Nov 2018 11:41:15 +0100
+Subject: [PATCH 2/3] media: gpu: v4l2: allow DRM_FORMAT_NV12 without
+ ARCH_CPU_ARMEL
+
+---
+ media/gpu/v4l2/generic_v4l2_device.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/media/gpu/v4l2/generic_v4l2_device.cc b/media/gpu/v4l2/generic_v4l2_device.cc
+index 6a6c847eeb22..1676d8cd0276 100644
+--- a/media/gpu/v4l2/generic_v4l2_device.cc
++++ b/media/gpu/v4l2/generic_v4l2_device.cc
+@@ -212,8 +212,8 @@ std::vector<base::ScopedFD> GenericV4L2Device::GetDmabufsForV4L2Buffer(
+ bool GenericV4L2Device::CanCreateEGLImageFrom(uint32_t v4l2_pixfmt) {
+   static uint32_t kEGLImageDrmFmtsSupported[] = {
+     DRM_FORMAT_ARGB8888,
+-#if defined(ARCH_CPU_ARMEL)
+     DRM_FORMAT_NV12,
++#if defined(ARCH_CPU_ARMEL)
+     DRM_FORMAT_YVU420,
+ #endif
+   };
+-- 
+2.19.1
+
