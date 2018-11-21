@@ -34,5 +34,7 @@ fi
 gn gen --args="${GN_ARGS}" "${OUTPUT_DIR}"
 cd ${OUTPUT_DIR}
 ninja -v -j6 chrome chrome_sandbox chromedriver
+../../install_chromium.sh
+
 cd -
 cd -
