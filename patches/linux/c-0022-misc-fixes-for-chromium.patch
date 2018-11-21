@@ -1,0 +1,58 @@
+diff --git a/drivers/media/common/videobuf2/videobuf2-core.c b/drivers/media/common/videobuf2/videobuf2-core.c
+index 5653e8eebe2b..b40fce69fd74 100644
+--- a/drivers/media/common/videobuf2/videobuf2-core.c
++++ b/drivers/media/common/videobuf2/videobuf2-core.c
+@@ -675,11 +675,11 @@ int vb2_core_reqbufs(struct vb2_queue *q, enum vb2_memory memory,
+ 		 * are not in use and can be freed.
+ 		 */
+ 		mutex_lock(&q->mmap_lock);
+-		if (q->memory == VB2_MEMORY_MMAP && __buffers_in_use(q)) {
++		/*if (q->memory == VB2_MEMORY_MMAP && __buffers_in_use(q)) {
+ 			mutex_unlock(&q->mmap_lock);
+ 			dprintk(1, "memory in use, cannot free\n");
+ 			return -EBUSY;
+-		}
++		}*/
+ 
+ 		/*
+ 		 * Call queue_cancel to clean up any buffers in the PREPARED or
+diff --git a/drivers/media/platform/meson/vdec/vdec.h b/drivers/media/platform/meson/vdec/vdec.h
+index 8f8ce629c698..a717a5de1e1d 100644
+--- a/drivers/media/platform/meson/vdec/vdec.h
++++ b/drivers/media/platform/meson/vdec/vdec.h
+@@ -35,6 +35,7 @@ struct amvdec_timestamp {
+ 	struct list_head list;
+ 	u64 ts;
+ 	u32 offset;
++	u32 marks;
+ };
+ 
+ struct amvdec_session;
+diff --git a/drivers/media/platform/meson/vdec/vdec_helpers.c b/drivers/media/platform/meson/vdec/vdec_helpers.c
+index e7b6651d5a0f..025593774db6 100644
+--- a/drivers/media/platform/meson/vdec/vdec_helpers.c
++++ b/drivers/media/platform/meson/vdec/vdec_helpers.c
+@@ -229,7 +229,7 @@ void amvdec_add_ts_reorder(struct amvdec_session *sess, u64 ts, u32 offset)
+ 	struct amvdec_timestamp *new_ts, *tmp;
+ 	unsigned long flags;
+ 
+-	new_ts = kmalloc(sizeof(*new_ts), GFP_KERNEL);
++	new_ts = kzalloc(sizeof(*new_ts), GFP_KERNEL);
+ 	new_ts->ts = ts;
+ 	new_ts->offset = offset;
+ 
+@@ -381,9 +381,11 @@ void amvdec_dst_buf_done_offset(struct amvdec_session *sess,
+ 		 * (not all src packets/timestamps lead to a frame)
+ 		 */
+ 		if (delta > 0 || delta < -1 * (s32)sess->vififo_size) {
+-			atomic_dec(&sess->esparser_queued_bufs);
+-			list_del(&tmp->list);
+-			kfree(tmp);
++			if (tmp->marks++ >= 8) {
++				atomic_dec(&sess->esparser_queued_bufs);
++				list_del(&tmp->list);
++				kfree(tmp);
++			}
+ 		}
+ 	}
+ 
