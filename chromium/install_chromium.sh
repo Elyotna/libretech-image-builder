@@ -24,6 +24,7 @@ install -d ${D}${libdir}/chromium/locales
 
 install -m 4755 chrome_sandbox ${D}${libdir}/chromium/chrome-sandbox
 install -m 0755 chrome ${D}${libdir}/chromium/chromium-bin
+strip ${D}${libdir}/chromium/chromium-bin
 install -m 0644 *.bin ${D}${libdir}/chromium/
 install -m 0644 icudtl.dat ${D}${libdir}/chromium/icudtl.dat
 
