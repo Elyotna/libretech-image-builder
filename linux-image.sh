@@ -87,6 +87,15 @@ rm -fr meson_gx_mali_450
 # copy ubuntu base
 tar xfz ubuntu-base-${UBUNTU_VERSION}-base-arm64.tar.gz -C p2/
 
+# Install meson firmware for the VDEC
+if [ ! -d meson-firmware ]
+then
+	git clone https://github.com/chewitt/meson-firmware.git
+fi
+
+mkdir -p p2/lib/firmware/
+cp -r meson-firmware/meson p2/lib/firmware/
+
 mkdir -p p2/etc/apt/apt.conf.d p2/etc/dpkg/dpkg.cfg.d
 echo "force-unsafe-io" > "p2/etc/dpkg/dpkg.cfg.d/dpkg-unsafe-io"
 mkdir -p p2/usr/bin
