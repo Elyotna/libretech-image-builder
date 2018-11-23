@@ -61,14 +61,13 @@ IMAGE_LOOP_DEV_BOOT="${IMAGE_LOOP_DEV}p1"
 IMAGE_LOOP_DEV_ROOT="${IMAGE_LOOP_DEV}p2"
 partprobe "${IMAGE_LOOP_DEV}"
 mkfs.vfat -n BOOT "${IMAGE_LOOP_DEV_BOOT}"
-mkfs.btrfs -f -L ROOT "${IMAGE_LOOP_DEV_ROOT}"
+mkfs.ext4 -L ROOT "${IMAGE_LOOP_DEV_ROOT}"
 mkdir -p p1 p2
 mount "${IMAGE_LOOP_DEV_BOOT}" p1
 mount "${IMAGE_LOOP_DEV_ROOT}" p2
-btrfs subvolume create p2/@
 sync
 umount p2
-mount -o compress=lzo,noatime,subvol=@ "${IMAGE_LOOP_DEV_ROOT}" p2
+mount -o defaults,noatime "${IMAGE_LOOP_DEV_ROOT}" p2
 
 PATH=$PWD/gcc/bin:$PATH make -C ${IMAGE_VERSION} ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- install INSTALL_PATH=$PWD/p1/
 cp ${IMAGE_VERSION}/arch/arm64/boot/Image p1/Image
@@ -93,7 +92,7 @@ echo "force-unsafe-io" > "p2/etc/dpkg/dpkg.cfg.d/dpkg-unsafe-io"
 mkdir -p p2/usr/bin
 cp $(which "qemu-aarch64-static") p2/usr/bin
 tee p2/etc/fstab <<EOF
-/dev/root	/	btrfs	defaults,compress=lzo,noatime,subvol=@ 0 1
+/dev/root	/	ext4	defaults,noatime 0 1
 EOF
 if [ -n "$PROXY" ] ; then
 	tee "p2/etc/apt/apt.conf.d/30proxy" <<EOF
@@ -169,8 +168,6 @@ KERNEL=="mali", MODE="0666", GROUP="video"
 EOF
 
 binary-amlogic/mkimage -C none -A arm -T script -d binary-amlogic/boot.cmd p1/boot.scr
-
-btrfs filesystem defragment -f -r p2
 
 umount p2
 umount p1
