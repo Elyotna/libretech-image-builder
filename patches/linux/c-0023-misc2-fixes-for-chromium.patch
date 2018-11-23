@@ -1,0 +1,117 @@
+diff --git a/drivers/media/platform/meson/vdec/codec_h264.c b/drivers/media/platform/meson/vdec/codec_h264.c
+index 6ac0115afaa3..9a02021a368f 100644
+--- a/drivers/media/platform/meson/vdec/codec_h264.c
++++ b/drivers/media/platform/meson/vdec/codec_h264.c
+@@ -281,13 +281,14 @@ static void codec_h264_resume(struct amvdec_session *sess)
+ 	struct amvdec_core *core = sess->core;
+ 	struct codec_h264 *h264 = sess->priv;
+ 	u32 mb_width, mb_height, mb_total;
++	u32 actual_dpb_size = v4l2_m2m_num_dst_bufs_ready(sess->m2m_ctx);
+ 
+ 	amvdec_set_canvases(sess, (u32[]){ ANC0_CANVAS_ADDR, 0 },
+ 				  (u32[]){ 24, 0 });
+ 
+ 	dev_dbg(core->dev,
+ 		"max_refs = %u; actual_dpb_size = %u\n",
+-		h264->max_refs, sess->num_dst_bufs);
++		h264->max_refs, actual_dpb_size);
+ 
+ 	/* Align to a multiple of 4 macroblocks */
+ 	mb_width = ALIGN(h264->mb_width, 4);
+@@ -310,7 +311,7 @@ static void codec_h264_resume(struct amvdec_session *sess)
+ 	amvdec_write_dos(core, AV_SCRATCH_4, h264->ref_paddr + h264->ref_size);
+ 
+ 	amvdec_write_dos(core, AV_SCRATCH_0, (h264->max_refs << 24) |
+-					     (sess->num_dst_bufs << 16) |
++					     (actual_dpb_size << 16) |
+ 					     ((h264->max_refs - 1) << 8));
+ }
+ 
+@@ -348,7 +349,7 @@ static void codec_h264_src_change(struct amvdec_session *sess)
+ 		 frame_width, frame_height, crop_right, crop_bottom);
+ 
+ 	codec_h264_set_par(sess);
+-	amvdec_src_change(sess, frame_width, frame_height, h264->max_refs + 5);
++	amvdec_src_change(sess, frame_width, frame_height, h264->max_refs + 7);
+ }
+ 
+ /**
+diff --git a/drivers/media/platform/meson/vdec/vdec.c b/drivers/media/platform/meson/vdec/vdec.c
+index dcde0a2e5640..2a8cbb574372 100644
+--- a/drivers/media/platform/meson/vdec/vdec.c
++++ b/drivers/media/platform/meson/vdec/vdec.c
+@@ -203,7 +203,7 @@ static int vdec_queue_setup(struct vb2_queue *q,
+ 
+ 	switch (q->type) {
+ 	case V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE:
+-		sizes[0] = amvdec_get_output_size(sess);
++		sizes[0] = SZ_2M;
+ 		*num_planes = 1;
+ 		break;
+ 	case V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE:
+@@ -239,7 +239,7 @@ static int vdec_queue_setup(struct vb2_queue *q,
+ 		 * we need all of them to be queued into the driver
+ 		 */
+ 		sess->num_dst_bufs = q->num_buffers + *num_buffers;
+-		q->min_buffers_needed = sess->num_dst_bufs;
++		q->min_buffers_needed = sess->num_dst_bufs - 1;
+ 		break;
+ 	default:
+ 		return -EINVAL;
+diff --git a/drivers/media/platform/meson/vdec/vdec.h b/drivers/media/platform/meson/vdec/vdec.h
+index 8f8ce629c698..7df42c5f6290 100644
+--- a/drivers/media/platform/meson/vdec/vdec.h
++++ b/drivers/media/platform/meson/vdec/vdec.h
+@@ -256,6 +256,7 @@ struct amvdec_session {
+ 	u32 last_offset;
+ 	u32 wrap_count;
+ 	u32 dpb_size;
++	u32 fw_idx_to_vb2_idx[32];
+ 
+ 	enum amvdec_status status;
+ 	void *priv;
+diff --git a/drivers/media/platform/meson/vdec/vdec_helpers.c b/drivers/media/platform/meson/vdec/vdec_helpers.c
+index e7b6651d5a0f..59e1c81893f8 100644
+--- a/drivers/media/platform/meson/vdec/vdec_helpers.c
++++ b/drivers/media/platform/meson/vdec/vdec_helpers.c
+@@ -186,6 +186,7 @@ int amvdec_set_canvases(struct amvdec_session *sess,
+ 	u32 reg_cur = reg_base[0];
+ 	u32 reg_num_cur = 0;
+ 	u32 reg_base_cur = 0;
++	int i = 0;
+ 	int ret;
+ 
+ 	v4l2_m2m_for_each_dst_buf(sess->m2m_ctx, buf) {
+@@ -218,6 +219,8 @@ int amvdec_set_canvases(struct amvdec_session *sess,
+ 			reg_base_cur++;
+ 			reg_num_cur = 0;
+ 		}
++
++		sess->fw_idx_to_vb2_idx[i++] = buf->vb.vb2_buf.index;
+ 	}
+ 
+ 	return 0;
+@@ -409,7 +412,7 @@ void amvdec_dst_buf_done_idx(struct amvdec_session *sess,
+ 	struct vb2_v4l2_buffer *vbuf;
+ 	struct device *dev = sess->core->dev_dec;
+ 
+-	vbuf = v4l2_m2m_dst_buf_remove_by_idx(sess->m2m_ctx, buf_idx);
++	vbuf = v4l2_m2m_dst_buf_remove_by_idx(sess->m2m_ctx, sess->fw_idx_to_vb2_idx[buf_idx]);
+ 	if (!vbuf) {
+ 		dev_err(dev,
+ 			"Buffer %u done but it doesn't exist in m2m_ctx\n",
+@@ -448,12 +451,12 @@ void amvdec_src_change(struct amvdec_session *sess, u32 width, u32 height, u32 d
+ 	/* Check if the capture queue is already configured well for our
+ 	 * usecase. If so, keep decoding with it and do not send the event
+ 	 */
+-	if (sess->width == width &&
++	/*if (sess->width == width &&
+ 	    sess->height == height &&
+ 	    dpb_size <= sess->num_dst_bufs) {
+ 		sess->fmt_out->codec_ops->resume(sess);
+ 		return;
+-	}
++	}*/
+ 
+ 	dev_dbg(sess->core->dev, "Res. changed (%ux%u), DPB size %u\n",
+ 		width, height, dpb_size);
