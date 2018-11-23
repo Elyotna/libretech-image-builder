@@ -1,0 +1,25 @@
+From ebb83c69456b63b7e0f58a05dfd7be109188b9d0 Mon Sep 17 00:00:00 2001
+From: Maxime Jourdan <mjourdan@baylibre.com>
+Date: Fri, 23 Nov 2018 15:38:30 +0100
+Subject: [PATCH] linux/wrapper: restore CHROME_EXTRA_ARGS
+
+---
+ chrome/installer/linux/common/wrapper | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/chrome/installer/linux/common/wrapper b/chrome/installer/linux/common/wrapper
+index dbbeb27ea037..ea2e5430462a 100755
+--- a/chrome/installer/linux/common/wrapper
++++ b/chrome/installer/linux/common/wrapper
+@@ -45,5 +45,7 @@ exec < /dev/null
+ exec > >(exec cat)
+ exec 2> >(exec cat >&2)
+ 
++CHROME_EXTRA_ARGS=""
++
+ # Note: exec -a below is a bashism.
+-exec -a "$0" "$HERE/@@PROGNAME@@" "$@"
++exec -a "$0" "$HERE/@@PROGNAME@@" ${CHROME_EXTRA_ARGS} "$@"
+-- 
+2.19.2
+
