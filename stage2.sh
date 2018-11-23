@@ -3,11 +3,12 @@
 set -o errexit
 set -o pipefail
 set -o nounset
+set -x
 
 echo 'nameserver 8.8.8.8' > /etc/resolv.conf
 
 apt-get update
-apt-get -y install locales
+apt-get -y install locales apt-utils
 
 echo "LANG=en_US.UTF-8" > /etc/default/locale
 echo "LC_ALL=en_US.UTF-8" >> /etc/default/locale
@@ -33,6 +34,11 @@ apt-get -y dist-upgrade
 apt-get install -y ubuntu-desktop rng-tools libatomic1
 
 systemctl enable rng-tools
+
+# Disable CPU/RAM-consuming services
+apt -y purge gnome-software
+mv /usr/lib/evolution-data-server /usr/lib/evolution-data-server-disabled
+mv /usr/lib/evolution /usr/lib/evolution-disabled
 
 # Basic network setup
 cat > /etc/network/interfaces.d/eth0 <<EOF
