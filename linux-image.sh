@@ -106,7 +106,7 @@ cp bash.arm64 p2/bin/bash
 cp stage2.sh p2/root
 
 # Copy mutter packages modified for mali
-cp mutter/build/gir1.2-mutter-2_*.deb mutter/build/libmutter-2-0_*.deb mutter/build/mutter_*.deb mutter/build/mutter-common_*.deb p2/root
+cp mutter/build/gir1.2-mutter-2_*.deb mutter/build/libmutter-2-0_*.deb mutter/build/mutter_*.deb mutter/build/mutter-common_*.deb chromium/chromium_browser_71.0.3545.0_18.04_arm64.deb p2/root
 
 # Run stage2 from chroot
 mount -o bind /dev p2/dev
@@ -162,9 +162,10 @@ ln -s libwayland-egl.so libwayland-egl.so
 cd -
 rm -fr mali-450_r7p0-01rel0_linux_1+arm64
 
-# Mali udev rule
+# Mali, video decoder udev rules
 tee p2/etc/udev/rules.d/50-mali.rules <<EOF
 KERNEL=="mali", MODE="0666", GROUP="video"
+SUBSYSTEM=="video4linux", ATTR{name}=="meson-video-decoder", SYMLINK+="video-dec0"
 EOF
 
 binary-amlogic/mkimage -C none -A arm -T script -d binary-amlogic/boot.cmd p1/boot.scr

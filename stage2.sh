@@ -30,7 +30,7 @@ adduser libre dialout
 adduser libre video
 
 apt-get -y dist-upgrade
-apt-get install -y ubuntu-desktop rng-tools
+apt-get install -y ubuntu-desktop rng-tools libatomic1
 
 systemctl enable rng-tools
 
@@ -41,6 +41,9 @@ iface eth0 inet dhcp
 EOF
 mkdir -p /etc/systemd/system/network-online.target.wants/
 ln -snf /lib/systemd/system/networking.service /etc/systemd/system/network-online.target.wants/networking.service
+
+# chromium looks for this specific path for libv4l2
+ln -s aarch64-linux-gnu/libv4l2.so.0 /usr/lib/libv4l2.so
 
 # Clean up packages
 apt-get -y autoremove
