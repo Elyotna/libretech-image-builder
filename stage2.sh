@@ -63,7 +63,7 @@ dpkg -i /root/*.deb
 apt install -y libgles2-mesa-dev libegl1-mesa-dev libgbm-dev
 
 # Lock mutter package version
-apt-mark hold mutter mutter-common gir1.2-mutter-2 libmutter-2*
+apt-mark hold mutter mutter-common gir1.2-mutter-3 libmutter-3* xwayland xserver-xorg-core
 
 # Lock mesa libs packages to avoid reinstalling over mali
 apt-mark hold libgles2* libegl1* libgbm1 libwayland-egl1-mesa

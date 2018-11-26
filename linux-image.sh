@@ -8,8 +8,8 @@ PROXY=""
 IMAGE_FOLDER="img/"
 IMAGE_VERSION="linux"
 IMAGE_DEVICE_TREE="amlogic/meson-gxl-s905x-libretech-cc"
-UBUNTU_RELEASE="bionic"
-UBUNTU_VERSION="18.04"
+UBUNTU_RELEASE="cosmic"
+UBUNTU_VERSION="18.10"
 if [ ! -z "$1" ]; then
 	IMAGE_VERSION="$1"
 fi
@@ -109,13 +109,10 @@ Acquire::http::proxy "http://127.0.0.1:3142";
 EOF
 fi
 
-# Bionic bash is build with PIE and is broken with Qemu, replace it with Xenial one
-mv p2/bin/bash p2/bin/bash.orig
-cp bash.arm64 p2/bin/bash
 cp stage2.sh p2/root
 
-# Copy mutter packages modified for mali
-cp mutter/build/gir1.2-mutter-2_*.deb mutter/build/libmutter-2-0_*.deb mutter/build/mutter_*.deb mutter/build/mutter-common_*.deb chromium/chromium_browser_71.0.3545.0_18.04_arm64.deb p2/root
+# Copy mutter, xserver, chromium packages modified for mali
+cp mutter/build/gir1.2-mutter-3_*.deb mutter/build/libmutter-3-0_*.deb mutter/build/mutter_*.deb mutter/build/mutter-common_*.deb chromium/chromium_browser_71.0.3545.0_18.04_arm64.deb xserver/build/*.deb p2/root
 
 # Run stage2 from chroot
 mount -o bind /dev p2/dev
@@ -126,7 +123,6 @@ umount p2/dev
 
 rm p2/root/*.deb
 rm p2/usr/bin/qemu-aarch64-static
-mv p2/bin/bash.orig p2/bin/bash
 rm p2/root/stage2.sh
 
 if [ -n "$PROXY" ] ; then
