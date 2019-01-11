@@ -31,4 +31,9 @@ Simply dd it onto an SDCard like :
 # sudo dd if=aml-s905x-cc-ubuntu-cosmic-linux-4.19.5-dirty-2018-11-30.img of=/dev/mmcblk0 bs=8M
 ```
 
+Account details
+=====
+- Username: libre
+- Password: computer
+
 Enjoy !
