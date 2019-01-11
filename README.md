@@ -7,7 +7,7 @@ Prerequesite
 On an Ubuntu 18.04+ x86_64/AMD64 system :
 
 ```
-# sudo apt install build-essential bc git qemu debootstrap qemu-user-static parted dosfstools bison flex
+# sudo apt install build-essential bc git qemu debootstrap qemu-user-static parted dosfstools bison flex libssl-dev
 ```
 
 NOTE: On Ubuntu 18.04, please fetch the qemu-user-static package from Ubuntu 18.10.
@@ -35,5 +35,8 @@ Account details
 =====
 - Username: libre
 - Password: computer
+
+- Username: root
+- Password: root
 
 Enjoy !
