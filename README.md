@@ -7,7 +7,7 @@ Prerequesite
 On an Ubuntu 18.04+ x86_64/AMD64 system :
 
 ```
-# sudo apt install build-essential bc git qemu debootstrap qemu-user-static parted dosfstools
+# sudo apt install build-essential bc git qemu debootstrap qemu-user-static parted dosfstools bison flex
 ```
 
 NOTE: On Ubuntu 18.04, please fetch the qemu-user-static package from Ubuntu 18.10.
