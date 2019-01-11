@@ -7,7 +7,7 @@ Prerequesite
 On an Ubuntu 18.04+ x86_64/AMD64 system :
 
 ```
-# sudo apt install build-essential bc git qemu debootstrap qemu-user-static
+# sudo apt install build-essential bc git qemu debootstrap qemu-user-static parted dosfstools bison flex
 ```
 
 NOTE: On Ubuntu 18.04, please fetch the qemu-user-static package from Ubuntu 18.10.
@@ -30,5 +30,10 @@ Simply dd it onto an SDCard like :
 ```
 # sudo dd if=aml-s905x-cc-ubuntu-cosmic-linux-4.19.5-dirty-2018-11-30.img of=/dev/mmcblk0 bs=8M
 ```
+
+Account details
+=====
+- Username: libre
+- Password: computer
 
 Enjoy !
